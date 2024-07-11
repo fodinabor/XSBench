@@ -28,6 +28,7 @@ XSutils.c \
 Materials.c
 
 obj = $(source:.c=.o)
+objopt = $(source:.c=.opt)
 
 #===============================================================================
 # Sets Flags
@@ -42,7 +43,7 @@ endif
 CFLAGS := -std=gnu99 -Wall -disable-llvm-passes
 
 # Linker Flags
-LDFLAGS = -lm
+LDFLAGS = -lm -fuse-ld=lld
 
 # Regular gcc Compiler
 ifneq (,$(findstring gcc,$(CC)))
@@ -80,10 +81,10 @@ ifeq ($(PROFILE),yes)
   LDFLAGS  += -pg
 endif
 
-# Optimization Flags
-ifeq ($(OPTIMIZE),yes)
-  CFLAGS += -O3
-endif
+# # Optimization Flags
+# ifeq ($(OPTIMIZE),yes)
+#   CFLAGS += -O3
+# endif
 
 # MPI
 ifeq ($(MPI),yes)
@@ -102,16 +103,24 @@ endif
 #===============================================================================
 
 $(program): $(obj) XSbench_header.h Makefile
-	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS) -O1
+
+$(program).opt: $(objopt) XSbench_header.h Makefile
+	$(CC) $(CFLAGS) $(objopt) -o $@ $(LDFLAGS) -O3
 
 %.o: %.c XSbench_header.h Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -O1
+
+%.opt: %.c XSbench_header.h Makefile
+	$(CC) $(CFLAGS) -c $< -o $@ -O3
 
 clean:
-	rm -rf $(program) $(obj)
+	rm -rf $(program) $(obj) $(objopt)
 
 edit:
 	vim -p $(source) XSbench_header.h
 
 run:
 	./$(program)
+
+default: $(program) $(program).opt
